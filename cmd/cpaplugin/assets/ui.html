@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TokenSaver 压缩设置</title>
+<style>
+:root{--bg:#0f172a;--panel:#172033;--panel-2:#101a2b;--line:#28364f;--text:#e6edf7;--muted:#9aa8bd;--accent:#4da3ff;--ok:#3ddc97;--warn:#ffc857;--danger:#ff6b6b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1240px;margin:auto;padding:26px}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:20px}.top h1{margin:0;font-size:23px}.top p{color:var(--muted);margin:6px 0 0;max-width:720px}.auth{min-width:330px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}.auth-row{display:flex;gap:8px}.auth input{flex:1}.auth-status{display:block;margin-top:7px;font-size:12px;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}.card h2{margin:0 0 14px;font-size:16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}input,select,textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px;font:inherit}textarea{min-height:92px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.row{display:flex;align-items:center;gap:9px;margin:9px 0}.row label{margin:0;color:var(--text);font-size:14px}.switch{position:relative;width:42px;height:24px;flex:0 0 auto}.switch input{position:absolute;opacity:0;inset:0}.slider{position:absolute;inset:0;background:#263248;border-radius:999px;transition:.2s}.slider:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s}.switch input:checked+.slider{background:var(--accent)}.switch input:checked+.slider:before{transform:translateX(18px)}.muted{color:var(--muted);font-size:12px}.engines{display:grid;gap:10px}.engine{display:grid;grid-template-columns:24px 1fr;align-items:center;gap:10px;padding:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px}.engine input{width:18px;height:18px}.engine .name{font-weight:600}.engine .desc{color:var(--muted);font-size:12px}button{border:0;border-radius:8px;padding:10px 15px;background:var(--accent);color:#07111f;font-weight:700;cursor:pointer}button.secondary{background:#223049;color:var(--text)}button:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{background:var(--panel-2);padding:11px;border-radius:8px}.stat b{display:block;font-size:18px}.preview{min-height:180px;max-height:440px;overflow:auto;background:#09111f;border:1px solid var(--line);border-radius:8px;padding:12px;white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;color:#cfe0f7}#toast{position:fixed;right:20px;bottom:20px;max-width:440px;padding:12px 16px;border-radius:8px;background:#182b3d;border:1px solid var(--line);display:none;z-index:10}.warn{color:var(--warn)}.ok{color:var(--ok)}@media(max-width:920px){.top{display:block}.auth{margin-top:16px;min-width:0}.layout{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<header class="top">
+  <div>
+    <h1>TokenSaver 上下文压缩</h1>
+    <p>配置压缩策略、保护规则与有损开关，并预览压缩效果。保存后会原子写入 CPA 的 TokenSaver 配置文件。</p>
+  </div>
+  <div class="auth">
+    <label for="managementKey">CPA 管理密钥</label>
+    <div class="auth-row">
+      <input id="managementKey" type="password" autocomplete="off" placeholder="自动读取或手动输入">
+      <button id="connect" type="button">连接</button>
+    </div>
+    <span id="authStatus" class="auth-status">正在读取 CPA 管理密钥…</span>
+  </div>
+</header>
+
+<div class="layout">
+  <section>
+    <div class="card">
+      <h2>基础设置</h2>
+      <div class="grid">
+        <div><label for="mode">模式</label><select id="mode">
+          <option value="off">off（关闭）</option>
+          <option value="safe">safe（安全）</option>
+          <option value="balanced">balanced（平衡）</option>
+          <option value="aggressive">aggressive（激进）</option>
+          <option value="custom">custom（自定义）</option>
+        </select></div>
+        <div><label for="threshold">触发阈值（估算 token）</label><input id="threshold" type="number" min="0"></div>
+        <div><label for="minSavings">最小节省 token</label><input id="minSavings" type="number" min="0"></div>
+        <div><label for="prefix">保留前缀条数</label><input id="prefix" type="number" min="0"></div>
+      </div>
+      <div class="row"><span class="switch"><input id="enabled" type="checkbox"><span class="slider"></span></span><label for="enabled">启用压缩</label></div>
+      <div class="row"><span class="switch"><input id="protectSystem" type="checkbox"><span class="slider"></span></span><label for="protectSystem">保护 System / Developer 指令</label></div>
+      <div class="row"><span class="switch"><input id="preserveLastUser" type="checkbox"><span class="slider"></span></span><label for="preserveLastUser">保护当前用户请求及当前工具输出</label></div>
+      <div class="row"><span class="switch"><input id="allowLossy" type="checkbox"><span class="slider"></span></span><label for="allowLossy">允许有损策略</label><span class="muted">diagnostic-trim / tool-truncate 必须显式开启</span></div>
+    </div>
+
+    <div class="card">
+      <h2>模型范围</h2>
+      <div class="grid">
+        <div><label for="modelAllow">允许模型（每行一个，支持 *）</label><textarea id="modelAllow"></textarea></div>
+        <div><label for="modelDeny">排除模型（每行一个，支持 *）</label><textarea id="modelDeny"></textarea></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>压缩引擎</h2>
+      <div id="engines" class="engines"></div>
+      <p class="muted">预设模式使用固定引擎集合；只有 custom 模式使用这里的勾选顺序与开关。</p>
+    </div>
+
+    <div class="card">
+      <h2>有损参数</h2>
+      <div class="grid">
+        <div><label for="toolMax">工具输出最大字符数</label><input id="toolMax" type="number" min="1"></div>
+        <div><label for="toolMin">触发截断的最小字符数</label><input id="toolMin" type="number" min="1"></div>
+        <div><label for="toolHead">保留头部比例</label><input id="toolHead" type="number" min="0" max="1" step="0.01"></div>
+        <div><label for="toolTail">保留尾部比例</label><input id="toolTail" type="number" min="0" max="1" step="0.01"></div>
+        <div><label for="diagLines">诊断日志最大行数</label><input id="diagLines" type="number" min="1"></div>
+        <div><label for="diagMin">诊断日志触发最小字符数</label><input id="diagMin" type="number" min="1"></div>
+      </div>
+      <div class="row"><span class="switch"><input id="preserveErrors" type="checkbox"><span class="slider"></span></span><label for="preserveErrors">保留错误行</label></div>
+    </div>
+
+    <div class="actions">
+      <button id="apply" type="button" disabled>保存配置</button>
+      <button id="reload" class="secondary" type="button" disabled>重新加载</button>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h2>请求预览</h2>
+      <label for="protocol">协议</label><select id="protocol">
+        <option value="chat">Chat Completions</option>
+        <option value="responses">Responses / Codex</option>
+        <option value="anthropic">Anthropic Messages</option>
+      </select>
+      <div style="height:12px"></div>
+      <label for="previewBody">请求 JSON</label>
+      <textarea id="previewBody" spellcheck="false">{"model":"gpt-4.1","messages":[{"role":"assistant","content":"old  \n\n\n text"},{"role":"user","content":"now"}]}</textarea>
+      <div class="actions"><button id="preview" type="button" disabled>预览压缩</button></div>
+      <div style="height:12px"></div>
+      <pre id="previewResult" class="preview">尚未预览。</pre>
+    </div>
+
+    <div class="card">
+      <h2>运行统计</h2>
+      <div id="stats" class="stats"></div>
+      <div class="actions"><button id="refreshStats" class="secondary" type="button" disabled>刷新统计</button></div>
+      <p class="muted">统计仅保存在插件进程内，不保存请求体、响应体、Headers 或凭据。</p>
+    </div>
+
+    <div class="card">
+      <h2>说明</h2>
+      <p class="muted">safe：空白与 JSON 结构压缩。<br>balanced：加入诊断日志缩减。<br>aggressive：加入旧工具输出头尾截断。<br>custom：使用引擎列表。<br>所有有损策略仍需“允许有损策略”。</p>
+    </div>
+  </aside>
+</div>
+<div id="toast"></div>
+</main>
+<script>
+const API = '/v0/management/tokensaver';
+const AUTH_STORAGE = 'cli-proxy-auth';
+const SECURE_PREFIX = 'cli-proxy-api-webui::secure-storage';
+const q = s => document.querySelector(s);
+let managementKey = '';
+let loadedConfig = {};
+const engineDefs = [
+  {id:'whitespace',name:'Whitespace',desc:'折叠空白与多余空行；代码块原样保留。',lossy:false},
+  {id:'json-minify',name:'JSON Minify',desc:'压缩旧工具输出中的合法 JSON。',lossy:false},
+  {id:'exact-dedup',name:'Exact Dedup',desc:'删除相邻、同角色且完全相同的消息。',lossy:false},
+  {id:'diagnostic-trim',name:'Diagnostic Trim',desc:'缩减测试、构建与服务日志，保留错误行。',lossy:true},
+  {id:'tool-truncate',name:'Tool Truncate',desc:'旧工具输出按头部与尾部截断。',lossy:true}
+];
+
+function toast(message, bad=false) {
+  const el = q('#toast');
+  el.textContent = message;
+  el.style.display = 'block';
+  el.style.borderColor = bad ? 'var(--danger)' : 'var(--ok)';
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+function decodeStoredValue(raw) {
+  if (!raw) return '';
+  const v1 = raw.startsWith('enc::v1::');
+  const v2 = raw.startsWith('enc::v2::');
+  if (!v1 && !v2) return raw;
+  const salt = SECURE_PREFIX + '|' + location.host + (v1 ? '|' + navigator.userAgent : '');
+  const key = new TextEncoder().encode(salt);
+  const bin = atob(raw.slice(9));
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  for (let i = 0; i < bytes.length; i++) bytes[i] ^= key[i % key.length];
+  return new TextDecoder().decode(bytes);
+}
+
+function readStoredManagementKey() {
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE);
+    if (!raw) return '';
+    const state = JSON.parse(decodeStoredValue(raw));
+    return state?.state?.managementKey || state?.managementKey || '';
+  } catch {
+    return '';
+  }
+}
+
+function setAuthStatus(message, cls='') {
+  const el = q('#authStatus');
+  el.textContent = message;
+  el.className = 'auth-status ' + cls;
+}
+
+function setConnected(connected) {
+  q('#apply').disabled = !connected;
+  q('#preview').disabled = !connected;
+  q('#reload').disabled = !connected;
+  q('#refreshStats').disabled = !connected;
+}
+
+async function api(path, options={}) {
+  const headers = new Headers(options.headers || {});
+  headers.set('Content-Type', 'application/json');
+  if (managementKey) headers.set('X-Management-Key', managementKey);
+  const response = await fetch(API + path, {...options, headers});
+  const text = await response.text();
+  let data = null;
+  if (text) {
+    try { data = JSON.parse(text); } catch { data = text; }
+  }
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      managementKey = '';
+      q('#managementKey').value = '';
+      setConnected(false);
+      setAuthStatus('管理密钥无效或已过期，请重新输入。', 'warn');
+    }
+    const message = typeof data?.error === 'string' ? data.error : (data?.error?.message || response.statusText);
+    throw new Error(message);
+  }
+  return {data, headers: response.headers};
+}
+
+function lines(value) {
+  return (value || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+}
+
+function render(config) {
+  loadedConfig = JSON.parse(JSON.stringify(config || {}));
+  q('#enabled').checked = !!config.enabled;
+  q('#mode').value = config.mode || 'safe';
+  q('#threshold').value = config.threshold_tokens ?? 512;
+  q('#minSavings').value = config.min_savings_tokens ?? 16;
+  q('#prefix').value = config.preserve_prefix_items ?? 1;
+  q('#preserveLastUser').checked = !!config.preserve_last_user;
+  q('#protectSystem').checked = !!config.protect_system;
+  q('#allowLossy').checked = !!config.allow_lossy;
+  q('#modelAllow').value = (config.model_allow || []).join('\n');
+  q('#modelDeny').value = (config.model_deny || []).join('\n');
+
+  const engines = q('#engines');
+  engines.innerHTML = '';
+  for (const def of engineDefs) {
+    const current = (config.engines || []).find(item => item.id === def.id) || {enabled:false};
+    const row = document.createElement('div');
+    row.className = 'engine';
+    row.dataset.id = def.id;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = !!current.enabled;
+    const copy = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = def.name + (def.lossy ? '（有损）' : '');
+    const desc = document.createElement('div');
+    desc.className = 'desc';
+    desc.textContent = def.desc;
+    copy.append(name, desc);
+    row.append(checkbox, copy);
+    engines.append(row);
+  }
+
+  const tool = config.tool_truncate || {};
+  q('#toolMax').value = tool.max_chars ?? 8000;
+  q('#toolMin').value = tool.min_chars ?? 9000;
+  q('#toolHead').value = tool.head_pct ?? 0.6;
+  q('#toolTail').value = tool.tail_pct ?? 0.3;
+  const diagnostic = config.diagnostic_trim || {};
+  q('#diagLines').value = diagnostic.max_lines ?? 140;
+  q('#diagMin').value = diagnostic.min_chars ?? 12000;
+  q('#preserveErrors').checked = !!diagnostic.preserve_error_lines;
+}
+
+function currentConfig() {
+  const engines = [...q('#engines').children].map(row => ({
+    id: row.dataset.id,
+    enabled: row.querySelector('input').checked
+  }));
+  return {
+    ...loadedConfig,
+    enabled: q('#enabled').checked,
+    mode: q('#mode').value,
+    threshold_tokens: +q('#threshold').value,
+    min_savings_tokens: +q('#minSavings').value,
+    preserve_prefix_items: +q('#prefix').value,
+    preserve_last_user: q('#preserveLastUser').checked,
+    protect_system: q('#protectSystem').checked,
+    allow_lossy: q('#allowLossy').checked,
+    model_allow: lines(q('#modelAllow').value),
+    model_deny: lines(q('#modelDeny').value),
+    engines,
+    tool_truncate: {
+      max_chars: +q('#toolMax').value,
+      min_chars: +q('#toolMin').value,
+      head_pct: +q('#toolHead').value,
+      tail_pct: +q('#toolTail').value
+    },
+    diagnostic_trim: {
+      max_lines: +q('#diagLines').value,
+      min_chars: +q('#diagMin').value,
+      preserve_error_lines: q('#preserveErrors').checked
+    }
+  };
+}
+
+function renderStats(stats) {
+  const fields = [
+    ['请求数', stats.count ?? 0],
+    ['应用次数', stats.applied ?? 0],
+    ['回退次数', stats.fallback ?? 0],
+    ['估算节省', Number(stats.savings_percent || 0).toFixed(2) + '%'],
+    ['原估算 token', stats.original_tokens ?? 0],
+    ['压缩后 token', stats.compressed_tokens ?? 0],
+    ['平均耗时', Number(stats.average_compression_ms || 0).toFixed(3) + ' ms'],
+    ['最近记录', stats.entries?.length ?? 0]
+  ];
+  q('#stats').innerHTML = fields.map(([label, value]) => `<div class="stat"><span class="muted">${label}</span><b>${value}</b></div>`).join('');
+}
+
+async function loadAll() {
+  const [config, stats] = await Promise.all([api('/config'), api('/stats')]);
+  render(config.data);
+  renderStats(stats.data);
+  setConnected(true);
+  setAuthStatus('已连接 CPA 管理 API。', 'ok');
+}
+
+async function connect() {
+  const value = q('#managementKey').value.trim();
+  if (!value) {
+    setAuthStatus('请输入 CPA 管理密钥。', 'warn');
+    return;
+  }
+  managementKey = value;
+  setAuthStatus('正在连接…');
+  try {
+    await loadAll();
+    toast('已连接 CPA 管理 API。');
+  } catch (error) {
+    setAuthStatus('连接失败：' + error.message, 'warn');
+    toast('连接失败：' + error.message, true);
+  }
+}
+
+q('#connect').addEventListener('click', connect);
+q('#managementKey').addEventListener('keydown', event => {
+  if (event.key === 'Enter') connect();
+});
+q('#reload').addEventListener('click', async () => {
+  try { await loadAll(); toast('配置与统计已刷新。'); }
+  catch (error) { toast('刷新失败：' + error.message, true); }
+});
+q('#refreshStats').addEventListener('click', async () => {
+  try {
+    const stats = await api('/stats');
+    renderStats(stats.data);
+    toast('统计已刷新。');
+  } catch (error) { toast('统计刷新失败：' + error.message, true); }
+});
+q('#apply').addEventListener('click', async () => {
+  try {
+    const result = await api('/config', {method:'PUT', body:JSON.stringify(currentConfig())});
+    render(result.data);
+    const persisted = result.headers.get('X-TokenSaver-Persisted') !== 'false';
+    toast(persisted ? '配置已保存并立即生效。' : '配置已应用，但当前没有可写配置文件。', !persisted);
+  } catch (error) { toast('保存失败：' + error.message, true); }
+});
+q('#preview').addEventListener('click', async () => {
+  try {
+    const body = JSON.parse(q('#previewBody').value || '{}');
+    const result = await api('/preview', {
+      method:'POST',
+      body:JSON.stringify({config:currentConfig(), protocol:q('#protocol').value, body})
+    });
+    q('#previewResult').textContent = JSON.stringify(result.data, null, 2);
+  } catch (error) {
+    q('#previewResult').textContent = '错误：' + error.message;
+  }
+});
+
+(async function init() {
+  managementKey = readStoredManagementKey();
+  if (!managementKey) {
+    setConnected(false);
+    setAuthStatus('未自动读取到管理密钥，请手动输入。', 'warn');
+    return;
+  }
+  q('#managementKey').value = managementKey;
+  setAuthStatus('正在使用 CPA 已保存的管理密钥连接…');
+  try { await loadAll(); }
+  catch (error) { setAuthStatus('自动连接失败：' + error.message, 'warn'); }
+})();
+</script>
+</body>
+</html>

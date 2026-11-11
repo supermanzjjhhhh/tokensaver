@@ -1,0 +1,8 @@
+.git
+third_party
+dist
+evidence
+docs
+tests
+config
+*.log

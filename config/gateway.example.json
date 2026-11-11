@@ -1,0 +1,50 @@
+{
+  "adapter": "agent2api",
+  "listen": "127.0.0.1:9231",
+  "upstream": "http://127.0.0.1:3065",
+  "management_enabled": true,
+  "management_token_env": "TOKENSAVER_MANAGEMENT_TOKEN",
+  "allow_remote_management": false,
+  "max_request_body_bytes": 33554432,
+  "response_header_timeout_ms": 120000,
+  "idle_conn_timeout_ms": 90000,
+  "max_idle_conns": 128,
+  "max_idle_conns_per_host": 64,
+  "shutdown_timeout_ms": 10000,
+  "core": {
+    "enabled": true,
+    "mode": "safe",
+    "threshold_tokens": 512,
+    "min_savings_tokens": 16,
+    "preserve_prefix_items": 1,
+    "preserve_last_user": true,
+    "protect_system": true,
+    "allow_lossy": false,
+    "model_allow": ["*"],
+    "model_deny": [],
+    "engines": [
+      {"id": "whitespace", "enabled": true},
+      {"id": "json-minify", "enabled": true},
+      {"id": "exact-dedup", "enabled": false},
+      {"id": "diagnostic-trim", "enabled": false},
+      {"id": "tool-truncate", "enabled": false}
+    ],
+    "tool_truncate": {
+      "max_chars": 8000,
+      "head_pct": 0.6,
+      "tail_pct": 0.3,
+      "min_chars": 9000
+    },
+    "diagnostic_trim": {
+      "max_lines": 140,
+      "min_chars": 12000,
+      "preserve_error_lines": true
+    },
+    "logging": {
+      "enabled": true,
+      "max_entries": 500,
+      "include_model": true,
+      "include_engine": true
+    }
+  }
+}

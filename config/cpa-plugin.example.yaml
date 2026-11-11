@@ -1,0 +1,12 @@
+# CLIProxyAPI v8.0.60 plugin configuration fragment.
+# Review this fragment before applying it to a live deployment.
+# Keep the plugin directory read-only and mount a separate writable data directory
+# at /CLIProxyAPI/tokensaver-data for management-page persistence.
+plugins:
+  enabled: true
+  dir: "plugins"
+  configs:
+    tokensaver-context-compression:
+      enabled: true
+      priority: 100
+      config_path: "/CLIProxyAPI/tokensaver-data/core.json"

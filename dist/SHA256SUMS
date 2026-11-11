@@ -1,0 +1,4 @@
+58cefa541bb1157959807fdc28bc4cb5dc275cecc811fa2cf521ecbd94c34f41  dist/linux-amd64/tokensaver
+9b59a951d602e55977d4973af4026daf29036b1f3745aa22243e8cd08682a07f  dist/linux-amd64/tokensaver-cpa.so
+6c2c886a195f6190c668b1762ec8ff686962906ef9c8cc36a48713d58012af14  dist/linux-arm64/tokensaver
+3d7477752019f2a2d5e9daeb7b774f411f42e8741f2d384e707968ebc41b6a0b  dist/linux-arm64/tokensaver-cpa.so

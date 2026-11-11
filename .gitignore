@@ -1,0 +1,13 @@
+# Go build outputs not retained as source
+*.test
+*.out
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editors
+.DS_Store
+*.swp
+.idea/
+.vscode/
