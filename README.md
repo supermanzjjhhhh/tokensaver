@@ -93,7 +93,44 @@ go run ./cmd/tokensaver -config config/gateway.example.json -check
 go run ./cmd/tokensaver -config config/gateway.example.json
 ```
 
-The example gateway listens on `127.0.0.1:9231` and forwards to a local upstream. It does not open a public port.
+The example gateway listens on `127.0.0.1:9231` and forwards to the upstream in
+`config/gateway.example.json`. To use your own upstream:
+
+1. copy the example config;
+2. set `upstream` to your OpenAI-compatible base URL;
+3. keep the listener on loopback unless you have a private network or reverse proxy.
+
+```bash
+cp config/gateway.example.json /tmp/tokensaver-gateway.json
+# edit /tmp/tokensaver-gateway.json: set "upstream"
+go run ./cmd/tokensaver -config /tmp/tokensaver-gateway.json -check
+go run ./cmd/tokensaver -config /tmp/tokensaver-gateway.json
+```
+
+Send a normal request through the gateway. The client keeps sending its usual
+provider credential; TokenSaver does not need it.
+
+```bash
+curl http://127.0.0.1:9231/v1/chat/completions \
+  -H "Authorization: Bearer $UPSTREAM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "your-model",
+    "messages": [
+      {"role": "assistant", "content": "old  \n\n\n text"},
+      {"role": "user", "content": "Reply with OK."}
+    ]
+  }'
+```
+
+If compression was applied, the gateway response includes:
+
+```text
+X-TokenSaver-Applied: true
+X-TokenSaver-Savings-Percent: <value>
+```
+
+The example gateway does not open a public port.
 
 ### Build the CPA plugin
 
@@ -187,6 +224,65 @@ plugins:
 
 `config_path` must be absolute and writable. The plugin directory itself should stay read-only.
 
+### Step-by-step CPA installation
+
+The following assumes a CLIProxyAPI deployment directory containing
+`docker-compose.yml` and `config.yaml`.
+
+```bash
+cd /path/to/cliproxyapi
+
+mkdir -p plugins/linux/amd64 tokensaver-data
+
+# Copy the artifact matching the CPA container architecture.
+install -m 755 /path/to/tokensaver-cpa.so \
+  plugins/linux/amd64/tokensaver-context-compression.so
+
+# Start with the safe example configuration.
+install -m 600 /path/to/tokensaver/config/core.example.json \
+  tokensaver-data/core.json
+```
+
+Add the read-only plugin mount and writable data mount to `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ./plugins:/CLIProxyAPI/plugins:ro
+  - ./tokensaver-data:/CLIProxyAPI/tokensaver-data:rw
+```
+
+Add or merge the plugin block in `config.yaml`:
+
+```yaml
+plugins:
+  enabled: true
+  dir: plugins
+  configs:
+    tokensaver-context-compression:
+      enabled: true
+      priority: 100
+      config_path: /CLIProxyAPI/tokensaver-data/core.json
+```
+
+Recreate the container. A restart is not enough when mounts change:
+
+```bash
+docker compose up -d --force-recreate cli-proxy-api
+```
+
+Check that the plugin is loaded:
+
+```bash
+docker logs --since 5m cli-proxy-api 2>&1 | grep -Ei 'tokensaver|pluginhost'
+```
+
+Expected log lines include:
+
+```text
+pluginhost: plugin loaded plugin_id=tokensaver-context-compression
+pluginhost: plugin registered plugin_id=tokensaver-context-compression
+```
+
 ### Management UI and API
 
 The plugin registers:
@@ -210,6 +306,68 @@ The management UI supports:
 - lossy parameters;
 - request preview before saving;
 - in-process statistics.
+
+### Open the management UI
+
+Use the CPA management page host and port, then open:
+
+```text
+/v0/resource/plugins/tokensaver-context-compression/ui
+```
+
+The page will try to reuse the CPA management key from the management page. If it
+cannot read it, paste the CPA management key into the page. The key is kept in
+memory for the request and is not written to the TokenSaver config.
+
+Suggested first-run sequence:
+
+1. keep `enabled=false` until you have reviewed the configuration;
+2. load the config;
+3. use **Preview** with a synthetic request;
+4. verify `applied`, `engines`, `first_changed_item`, and savings;
+5. save the config;
+6. send a test request through CPA;
+7. open **Runtime statistics** and confirm `count` and `applied` increase;
+8. enable compression only after reviewing cache/cost behavior.
+
+### Verify the plugin
+
+The management API can be queried with the CPA management key:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $CPA_MANAGEMENT_KEY" \
+  http://<cpa-host>:<cpa-port>/v0/management/plugins
+```
+
+The TokenSaver entry should report:
+
+```text
+configured=true
+registered=true
+enabled=true
+effective_enabled=true
+```
+
+### Upgrade and rollback
+
+Before upgrading, back up:
+
+```text
+config.yaml
+docker-compose.yml
+plugins/linux/amd64/tokensaver-context-compression.so
+tokensaver-data/core.json
+```
+
+To roll back, restore those files and recreate the container:
+
+```bash
+docker compose up -d --force-recreate cli-proxy-api
+```
+
+Keep `tokensaver-data/` until you no longer need to roll back. Do not delete it as
+part of a routine plugin upgrade.
 
 ## Prompt Cache and Cost Trade-off
 
@@ -292,6 +450,51 @@ Provider tokenizers, cache behavior, and model-specific request validation vary.
 - The project does not manage provider accounts, quotas, routing, or credentials.
 - Long-running high-concurrency and failure-injection tests are not part of the default test suite.
 - Windows/macOS plugin builds are not provided; the prebuilt artifacts target Linux AMD64/ARM64.
+
+## Troubleshooting
+
+### The plugin does not appear in CPA
+
+Check:
+
+```bash
+docker inspect cli-proxy-api --format '{{json .Mounts}}'
+docker logs --since 10m cli-proxy-api 2>&1 | grep -Ei 'plugin|tokensaver'
+```
+
+Confirm that:
+
+- the `.so` matches the CPA container architecture;
+- the plugin path is under the host’s `plugins/linux/<arch>/` directory;
+- the plugin directory is mounted;
+- the CPA `plugins.enabled` and plugin `enabled` flags are both true;
+- the plugin schema is compatible with the CPA version.
+
+### The management page asks for a key
+
+The page could not read the CPA management key from browser storage. Paste the CPA
+management key manually. The key is not written into TokenSaver configuration.
+
+### Saving configuration fails
+
+`config_path` must point to a writable file inside a writable mount. The plugin
+directory itself should remain read-only; use a separate `tokensaver-data/` mount.
+
+### Requests pass through unchanged
+
+Check the runtime stats and the `skipped_reason` field. Common reasons are:
+
+- `enabled=false` or `mode=off`;
+- request below `threshold_tokens`;
+- model excluded by `model_allow` / `model_deny`;
+- unsupported or invalid JSON shape;
+- no effective change after applying the selected engines;
+- savings below `min_savings_tokens`.
+
+### Cache hit rate dropped
+
+Compression changes the request prefix. See [docs/cache-strategy.md](docs/cache-strategy.md)
+and consider a higher threshold or keeping compression disabled for cache-sensitive traffic.
 
 ## License
 
