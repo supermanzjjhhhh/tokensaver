@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
-    "README.md", "LICENSE", "go.mod", "go.sum", "Dockerfile", "Makefile",
+    "README.md", "README.zh-CN.md", "LICENSE", "go.mod", "go.sum", "Dockerfile", "Makefile",
     ".gitignore", ".dockerignore", "SECURITY.md", "CONTRIBUTING.md",
     ".github/workflows/ci.yml",
     "docs/architecture.md", "docs/configuration.md", "docs/deployment.md",

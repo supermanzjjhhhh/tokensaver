@@ -1,5 +1,7 @@
 # TokenSaver
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 **Deterministic, fail-open context compression for LLM APIs.**
 
 TokenSaver reduces redundant context before requests reach an upstream model. It ships as a shared Go compression core, a CLIProxyAPI plugin, and a standalone HTTP gateway. It does not call an LLM, does not require a database, and never needs access to provider credentials.
@@ -7,6 +9,8 @@ TokenSaver reduces redundant context before requests reach an upstream model. It
 [![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status: experimental](https://img.shields.io/badge/status-experimental-orange.svg)](#project-status)
+
+## Project Status
 
 > **Status:** experimental. The compressor is intentionally conservative and fail-open, but lossy engines and prompt-cache effects must be evaluated against your own traffic before production use.
 
